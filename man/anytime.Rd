@@ -7,15 +7,16 @@
 \alias{utcdate}
 \title{Parse POSIXct or Date objects from input data}
 \usage{
-anytime(x, tz = getTZ(), asUTC = FALSE, useR = FALSE,
+anytime(x, fmts = character(), tz = getTZ(), asUTC = FALSE,
+  useR = FALSE, oldHeuristic = getOption("anytimeOldHeuristic", FALSE))
+
+anydate(x, fmts = character(), tz = getTZ(), asUTC = FALSE,
+  useR = FALSE)
+
+utctime(x, fmts = character(), tz = getTZ(), useR = FALSE,
   oldHeuristic = getOption("anytimeOldHeuristic", FALSE))
 
-anydate(x, tz = getTZ(), asUTC = FALSE, useR = FALSE)
-
-utctime(x, tz = getTZ(), useR = FALSE,
-  oldHeuristic = getOption("anytimeOldHeuristic", FALSE))
-
-utcdate(x, tz = getTZ(), useR = FALSE)
+utcdate(x, fmts = character(), tz = getTZ(), useR = FALSE)
 }
 \arguments{
 \item{x}{A vector of type character, integer or numeric with date(time)

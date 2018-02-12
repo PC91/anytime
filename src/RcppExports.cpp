@@ -6,18 +6,19 @@
 using namespace Rcpp;
 
 // anytime_cpp
-Rcpp::NumericVector anytime_cpp(SEXP x, const std::string& tz, const bool asUTC, const bool asDate, const bool useR, const bool oldHeuristic);
-RcppExport SEXP _anytime_anytime_cpp(SEXP xSEXP, SEXP tzSEXP, SEXP asUTCSEXP, SEXP asDateSEXP, SEXP useRSEXP, SEXP oldHeuristicSEXP) {
+Rcpp::NumericVector anytime_cpp(SEXP x, const Rcpp::CharacterVector fmts, const std::string& tz, const bool asUTC, const bool asDate, const bool useR, const bool oldHeuristic);
+RcppExport SEXP _anytime_anytime_cpp(SEXP xSEXP, SEXP fmtsSEXP, SEXP tzSEXP, SEXP asUTCSEXP, SEXP asDateSEXP, SEXP useRSEXP, SEXP oldHeuristicSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< SEXP >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::CharacterVector >::type fmts(fmtsSEXP);
     Rcpp::traits::input_parameter< const std::string& >::type tz(tzSEXP);
     Rcpp::traits::input_parameter< const bool >::type asUTC(asUTCSEXP);
     Rcpp::traits::input_parameter< const bool >::type asDate(asDateSEXP);
     Rcpp::traits::input_parameter< const bool >::type useR(useRSEXP);
     Rcpp::traits::input_parameter< const bool >::type oldHeuristic(oldHeuristicSEXP);
-    rcpp_result_gen = Rcpp::wrap(anytime_cpp(x, tz, asUTC, asDate, useR, oldHeuristic));
+    rcpp_result_gen = Rcpp::wrap(anytime_cpp(x, fmts, tz, asUTC, asDate, useR, oldHeuristic));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -120,7 +121,7 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_anytime_anytime_cpp", (DL_FUNC) &_anytime_anytime_cpp, 6},
+    {"_anytime_anytime_cpp", (DL_FUNC) &_anytime_anytime_cpp, 7},
     {"_anytime_getFormats", (DL_FUNC) &_anytime_getFormats, 0},
     {"_anytime_addFormats", (DL_FUNC) &_anytime_addFormats, 1},
     {"_anytime_testFormat_impl", (DL_FUNC) &_anytime_testFormat_impl, 3},

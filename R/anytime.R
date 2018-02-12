@@ -146,7 +146,7 @@
 ##' anytime("2001-02-03 04:05:06", tz="America/Los_Angeles")
 ##' ## somewhat equvalent base R functionality
 ##' format(anytime("2001-02-03 04:05:06"), tz="America/Los_Angeles")
-anytime <- function(x, tz=getTZ(), asUTC=FALSE, useR=FALSE,
+anytime <- function(x, fmts=character(), tz=getTZ(), asUTC=FALSE, useR=FALSE,
                     oldHeuristic=getOption("anytimeOldHeuristic", FALSE)) {
 
     if (inherits(x, "POSIXt")) {
@@ -165,11 +165,11 @@ anytime <- function(x, tz=getTZ(), asUTC=FALSE, useR=FALSE,
         x <- as.character(x)
     }
 
-    anytime_cpp(x, tz=tz, asUTC=asUTC, useR=useR, oldHeuristic=oldHeuristic)
+    anytime_cpp(x, fmts=fmts, tz=tz, asUTC=asUTC, useR=useR, oldHeuristic=oldHeuristic)
 }
 
 ##' @rdname anytime
-anydate <- function(x, tz=getTZ(), asUTC=FALSE, useR=FALSE) {
+anydate <- function(x, fmts=character(), tz=getTZ(), asUTC=FALSE, useR=FALSE) {
     ## input is Date, pass through
     if (inherits(x, "Date")) return(x)
 
@@ -177,7 +177,7 @@ anydate <- function(x, tz=getTZ(), asUTC=FALSE, useR=FALSE) {
     if (inherits(x, "factor")) x <- as.character(x)
 
     ## otherwise call anytime_cpp
-    d <- anytime_cpp(x=x, tz=tz, asUTC=asUTC, asDate=TRUE, useR=useR, oldHeuristic=TRUE)
+    d <- anytime_cpp(x=x, fmts=fmts, tz=tz, asUTC=asUTC, asDate=TRUE, useR=useR, oldHeuristic=TRUE)
 
     ## one code path could result in POSIXct, if so convert
     if (inherits(d, "POSIXt")) d <- as.Date(d, tz=tz)
@@ -187,13 +187,13 @@ anydate <- function(x, tz=getTZ(), asUTC=FALSE, useR=FALSE) {
 }
 
 ##' @rdname anytime
-utctime <- function(x, tz=getTZ(), useR=FALSE,
+utctime <- function(x, fmts=character(), tz=getTZ(), useR=FALSE,
                     oldHeuristic=getOption("anytimeOldHeuristic", FALSE)) {
-    anytime(x=x, tz=tz, asUTC=TRUE, useR=useR, oldHeuristic=oldHeuristic)
+    anytime(x=x, fmts=fmts, tz=tz, asUTC=TRUE, useR=useR, oldHeuristic=oldHeuristic)
 }
 
 ##' @rdname anytime
-utcdate <- function(x, tz=getTZ(), useR=FALSE) {
+utcdate <- function(x, fmts=character(), tz=getTZ(), useR=FALSE) {
     ## input is Date, pass through
     if (inherits(x, "Date")) return(x)
 
@@ -201,7 +201,7 @@ utcdate <- function(x, tz=getTZ(), useR=FALSE) {
     if (inherits(x, "factor")) x <- as.character(x)
 
     ## otherwise call anytime_cpp
-    d <- anytime_cpp(x=x, tz=tz, asUTC=TRUE, asDate=TRUE, useR=useR, oldHeuristic=TRUE)
+    d <- anytime_cpp(x=x, fmts=fmts, fmts=character(), tz=tz, asUTC=TRUE, asDate=TRUE, useR=useR, oldHeuristic=TRUE)
 
     ## one code path could result in POSIXct, if so convert
     if (inherits(d, "POSIXt")) d <- as.Date(d, tz=tz)

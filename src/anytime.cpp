@@ -105,7 +105,8 @@ const std::string sformats[] = {
     "%B-%d-%Y"
 
 };
-const size_t nsformats = sizeof(sformats)/sizeof(sformats[0]);
+
+// const size_t nsformats = sizeof(sformats)/sizeof(sformats[0]);
 
 // somewhat simplistic C++ class -- but enough to allow us to hold (and hide)
 // two vectors of (string) formats and locale using the strings -- so that users
@@ -115,10 +116,10 @@ private:
     std::vector<std::string> formats;
     std::vector<std::locale> locales;
 public:
-    TimeFormats() {
-        for (size_t i=0; i<nsformats; i++) {
-            //Rcpp::Rcout << i << std::endl;
-            formats.push_back(sformats[i]);
+    TimeFormats(const std::vector<std::string>& sformats) {
+        formats = sformats;
+        for (size_t i=0; i<sformats.size(); i++) {
+            // Rcpp::Rcout << sformats[i] << std::endl;
             locales.push_back(std::locale(std::locale::classic(),
                                           new bt::time_input_facet(sformats[i])));
         }
@@ -134,7 +135,8 @@ public:
     std::vector<std::string> getFormats() { return formats; }
 };
 
-static TimeFormats timeformats;
+// Variable timeformats is used only for the case when useR = FALSE
+static TimeFormats timeformats(std::vector<std::string>(sformats, sformats + sizeof(sformats)/sizeof(sformats[0])));
 static std::string setupTZ;
 
 // given a ptime object, return (fractional) seconds since epoch
@@ -194,16 +196,17 @@ double ptToDoubleUTC(const bt::ptime & pt, const bool asDate=false) {
 
 // given a string with a (date)time object, try all formats til we parse one
 // conversion of ptime object to double done by ptToDouble()
-double stringToTime(const std::string s, const bool asUTC=false, const bool asDate=false) {
+double stringToTime(const std::string s, TimeFormats& timeformats, const bool asUTC=false, const bool asDate=false) {
 
     bt::ptime pt, ptbase;
-
+    // Rcpp::Rcout << timeformats.getN() << std::endl;
     // loop over formats and try them til one fits
     for (size_t i=0; pt == ptbase && i < timeformats.getN(); ++i) {
         std::istringstream is(s);
-        //Rcpp::Rcout << i << " " << timeformats.getFormat(i) << std::endl;
+        // Rcpp::Rcout << i << " " << timeformats.getFormat(i) << std::endl;
         is.imbue(timeformats.getLocale(i));
         is >> pt;
+        // Rcpp::Rcout << pt << std::endl;
     }
 
     if (pt == ptbase) return NA_REAL; // NA for non-parsed dates
@@ -214,6 +217,7 @@ double stringToTime(const std::string s, const bool asUTC=false, const bool asDa
         return ptToDouble(pt, asDate);
     }
 }
+
 
 // helper to peel off first two tokens, if any, of a string
 // use to do two things:
@@ -303,6 +307,7 @@ const std::string rformats[] = {
     "%B-%d-%Y"
 
 };
+
 const size_t nrformats = sizeof(rformats)/sizeof(rformats[0]);
 
 // conversion of ptime object to double done by ptToDouble()
@@ -328,6 +333,7 @@ double r_stringToTime(const std::string s, const std::string tz,
 
 template <class T, int RTYPE>
 Rcpp::NumericVector convertToTime(const Rcpp::Vector<RTYPE>& sxpvec,
+                                  const Rcpp::StringVector& fmts,
                                   const std::string& tz = "UTC",
                                   const bool asUTC = false,
                                   const bool asDate = false,
@@ -342,6 +348,20 @@ Rcpp::NumericVector convertToTime(const Rcpp::Vector<RTYPE>& sxpvec,
     //     pv.attr("class") = Rcpp::CharacterVector::create("POSIXct", "POSIXt");
     // }
     // pv.attr("tzone") = tz;
+
+
+    TimeFormats oldTimeFormats = timeformats;
+    std::vector<std::string> stdFmts;
+    for (int i=0; i < fmts.size(); i++){
+        stdFmts.push_back(Rcpp::as<std::string>(fmts[i]));
+    }
+    if (stdFmts.size() > 0) {
+        timeformats = TimeFormats(stdFmts);
+    }
+
+    // else {
+    //     timeformats = TimeFormats(sformats);
+    // }
 
     // step two: loop over input, cast each element to string and then convert
     for (int i=0; i<n; i++) {
@@ -404,10 +424,16 @@ Rcpp::NumericVector convertToTime(const Rcpp::Vector<RTYPE>& sxpvec,
             if (useR) {
                 pv[i] = r_stringToTime(s, tz, asUTC, asDate);
             } else {
-                pv[i] = stringToTime(s, asUTC, asDate);
+                pv[i] = stringToTime(s, timeformats, asUTC, asDate);
             }
         }
     }
+
+    if (stdFmts.size() > 0) {
+        timeformats = oldTimeFormats;
+        // timeformats = TimeFormats(sformats);
+    }
+
     // There is an issue with datetime parsing under TZ=Europe/London, see eg #36 and #51
     // We think this is caused by Boost but as we return to R for formating we need to adjust
     if (!useR && setupTZ == "Europe/London") {					// #nocov start
@@ -425,6 +451,7 @@ Rcpp::NumericVector convertToTime(const Rcpp::Vector<RTYPE>& sxpvec,
 
 // [[Rcpp::export]]
 Rcpp::NumericVector anytime_cpp(SEXP x,
+                                const Rcpp::CharacterVector fmts,
                                 const std::string& tz = "UTC",
                                 const bool asUTC = false,
                                 const bool asDate = false,
@@ -433,7 +460,7 @@ Rcpp::NumericVector anytime_cpp(SEXP x,
 
     if (Rcpp::is<Rcpp::CharacterVector>(x)) {
         // already a character -- so parse from character and convert
-        return convertToTime<const char*, STRSXP>(x, tz, asUTC, asDate, useR);
+        return convertToTime<const char*, STRSXP>(x, fmts, tz, asUTC, asDate, useR);
 
     } else if (Rcpp::is<Rcpp::NumericVector>(x) && asDate && REAL(x)[0] <= maxIntAsDate) {
         // if numeric and below date cutoff, treat as (already numeric/int) date
@@ -449,13 +476,13 @@ Rcpp::NumericVector anytime_cpp(SEXP x,
                oldHeuristic && INTEGER(x)[0] <= maxIntAsYYYYMMDD) {
         // actual integer date notation: convert to string via lexical cast
         // and then parse that string as usual
-        return convertToTime<int, INTSXP>(x, tz, asUTC, asDate, useR);
+        return convertToTime<int, INTSXP>(x, fmts, tz, asUTC, asDate, useR);
 
     } else if (Rcpp::is<Rcpp::NumericVector>(x) &&
                oldHeuristic && REAL(x)[0] <= maxIntAsYYYYMMDD) {
         // actual integer date notation: convert to string via lexical cast
         // and then parse that string as usual
-        return convertToTime<double, REALSXP>(x, tz, asUTC, asDate, useR);
+        return convertToTime<double, REALSXP>(x, fmts, tz, asUTC, asDate, useR);
 
     } else if (Rcpp::is<Rcpp::NumericVector>(x)) {
         // now we actually should have a proper large numeric (ie as.numeric(Sys.time())
